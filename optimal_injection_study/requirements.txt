@@ -1,0 +1,11 @@
+# Requirements for Optimal Injection LHS Study
+#
+# Install with: pip install -r requirements.txt
+
+numpy>=1.24.0
+scipy>=1.10.0
+pandas>=2.0.0
+matplotlib>=3.7.0
+seaborn>=0.12.0
+plotly>=5.14.0
+kaleido>=0.2.1  # For saving plotly figures
