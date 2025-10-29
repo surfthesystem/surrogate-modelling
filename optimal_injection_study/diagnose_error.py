@@ -17,12 +17,24 @@ if not os.path.exists(test_file):
 print(f"Attempting to import: {test_file}")
 print("="*70)
 
-# Change to the directory
-run_dir = os.path.dirname(test_file)
-sys.path.insert(0, run_dir)
-sys.path.insert(0, '../../simulator')
+# Get absolute paths
+run_dir = os.path.abspath(os.path.dirname(test_file))
+simulator_dir = os.path.abspath('../simulator')
 
+print(f"Run directory: {run_dir}")
+print(f"Simulator directory: {simulator_dir}")
+print(f"Input file exists: {os.path.exists(os.path.join(run_dir, 'input_file_phase1.py'))}")
+
+# Change to run directory so relative paths work
 os.chdir(run_dir)
+print(f"Changed working directory to: {os.getcwd()}")
+
+# Add to path
+sys.path.insert(0, run_dir)
+sys.path.insert(0, simulator_dir)
+
+print(f"sys.path[0]: {sys.path[0]}")
+print(f"sys.path[1]: {sys.path[1]}")
 
 try:
     import input_file_phase1
