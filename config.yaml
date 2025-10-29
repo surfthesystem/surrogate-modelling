@@ -1,0 +1,116 @@
+# GNN-LSTM Reservoir Surrogate Model Configuration
+
+# Reservoir Model Parameters
+reservoir:
+  grid:
+    nx: 100
+    ny: 100
+    nz: 1
+    dx: 50.0  # meters
+    dy: 50.0  # meters
+    dz: 10.0  # meters
+
+  rock:
+    permeability:
+      mean: 100.0  # mD
+      min: 10.0
+      max: 500.0
+      correlation_length: 500.0  # meters
+      distribution: "lognormal"
+
+    porosity:
+      mean: 0.20
+      min: 0.15
+      max: 0.30
+      # porosity = 0.15 + 0.0005 * sqrt(permeability)
+
+  fluid:
+    initial_pressure: 3000.0  # psi
+    initial_water_saturation: 0.25
+    initial_oil_saturation: 0.65
+    initial_gas_saturation: 0.10
+    oil_viscosity: 2.0  # cp
+    water_viscosity: 0.5  # cp
+    oil_density: 850.0  # kg/m3
+    water_density: 1000.0  # kg/m3
+
+  relative_permeability:
+    sorw: 0.2  # residual oil saturation (oil-water)
+    swc: 0.25  # critical water saturation
+    sorg: 0.1  # residual oil saturation (oil-gas)
+    sgc: 0.05  # critical gas saturation
+
+# Well Configuration
+wells:
+  producers:
+    count: 40
+    bhp_min: 1500.0  # psi
+    bhp_max: 2500.0  # psi
+    min_spacing: 500.0  # meters
+
+  injectors:
+    count: 20
+    rate_min: 100.0  # STB/day
+    rate_max: 1000.0  # STB/day
+    total_injection_min: 8000.0  # STB/day
+    total_injection_max: 12000.0  # STB/day
+    min_spacing: 500.0  # meters
+
+# Training Data Generation
+training:
+  n_cases: 250
+  n_timesteps: 10
+  timestep_size: 365.0  # days (1 year)
+  control_variation: 0.15  # 15% variation per timestep
+  parallel: true
+  n_workers: 4
+
+# GNN-LSTM Model Architecture
+model:
+  # Feature dimensions
+  producer_features: 4  # BHP, perm_x, perm_y, porosity
+  injector_features: 5  # rate, perm_x, perm_y, cum_injection, porosity
+
+  # Hidden dimensions
+  feature_projection_dim: 64
+  gnn_hidden_dim: 128
+  lstm_hidden_dim: 128
+
+  # Model configuration
+  dropout: 0.1
+  graph_type: "voronoi"  # voronoi or knn
+
+  # Loss function weights
+  alpha: 80.0  # water loss weight
+  beta: 1.0    # oil loss weight
+
+# Training Configuration
+training_config:
+  batch_size: 16
+  learning_rate: 0.0001
+  n_epochs: 100
+  weight_decay: 0.00001
+
+  # Learning rate scheduler
+  lr_scheduler:
+    type: "StepLR"
+    step_size: 50
+    gamma: 0.8
+
+  # Data split
+  train_split: 0.8
+  val_split: 0.1
+  test_split: 0.1
+
+  # Checkpointing
+  save_every: 10  # epochs
+  early_stopping_patience: 20
+
+# Paths
+paths:
+  data_dir: "./data"
+  training_data_dir: "./data/training_data"
+  models_dir: "./models"
+  results_dir: "./results"
+  logs_dir: "./logs"
+  reservoir_simulator_path: "./Reservoir-Simulator"

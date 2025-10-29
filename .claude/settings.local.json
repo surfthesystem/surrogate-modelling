@@ -1,0 +1,30 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mkdir:*)",
+      "Bash(git clone:*)",
+      "Bash(py:*)",
+      "Bash(pip --version:*)",
+      "Bash(where:*)",
+      "Read(//c/Program Files/**)",
+      "Bash(ls:*)",
+      "Bash(\"$LOCALAPPDATA/Programs/Python/Python314/python.exe\" --version)",
+      "Bash(\"$LOCALAPPDATA/Programs/Python/Python314/python.exe\" -m pip --version)",
+      "Bash(\"$LOCALAPPDATA/Programs/Python/Python314/python.exe\" -m pip install numpy scipy matplotlib pandas pyyaml)",
+      "Bash(\"$LOCALAPPDATA/Programs/Python/Python314/python.exe\" src/reservoir_model.py)",
+      "Bash(\"$LOCALAPPDATA/Programs/Python/Python314/python.exe\" multiphase_simulation.py)",
+      "Bash(\"$LOCALAPPDATA/Programs/Python/Python314/python.exe\" convert_phase1_data.py)",
+      "Bash(\"$LOCALAPPDATA/Programs/Python/Python314/python.exe\" IMPES_phase1.py)",
+      "Bash(\"$LOCALAPPDATA/Programs/Python/Python314/python.exe\" diagnose_wells.py)",
+      "Bash(\"$LOCALAPPDATA/Programs/Python/Python314/python.exe\" diagnose_permeability.py)",
+      "Bash(\"$LOCALAPPDATA/Programs/Python/Python314/python.exe\" IMPES_phase1_debug.py)",
+      "Bash(dir:*)",
+      "Bash(find:*)",
+      "Bash(tree:*)",
+      "Bash(git add:*)",
+      "Bash(git rm:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
