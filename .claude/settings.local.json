@@ -22,7 +22,16 @@
       "Bash(find:*)",
       "Bash(tree:*)",
       "Bash(git add:*)",
-      "Bash(git rm:*)"
+      "Bash(git rm:*)",
+      "Bash(git commit -m \"$(cat <<''EOF''\nInitial commit: Cleaned and organized reservoir simulator project\n\nMajor changes:\n- Removed 140 MB of homework assignments and duplicates (HW1-3, proj1)\n- Archived 80 MB of reference materials (17 class examples, old results)\n- Extracted working simulator to clean simulator/ folder (19 Python modules)\n- Removed nested .git repository to prevent conflicts\n- Cleaned all __pycache__ directories and .pyc files\n\nProject structure:\n- simulator/ - IMPES two-phase reservoir simulator (116 KB)\n- src/ - Phase 1 reservoir generation code (21 KB)\n- data/ - Generated reservoir data and IMPES inputs (476 KB)\n- results/ - Validated simulation results (2.7 MB)\n- utils/ - Diagnostic utilities (8 KB)\n- archive/ - Reference materials and class examples (80 MB)\n\nDocumentation added:\n- CLEANUP_REPORT.md - Detailed cleanup documentation\n- GOOGLE_CLOUD_DEPLOYMENT.md - GCP VM deployment guide\n- simulator/README.md - Simulator module documentation\n- archive/ARCHIVE_README.md - Archive contents explanation\n- .gitignore - Proper Python/data exclusions\n\nAttribution preserved:\n- Original code by Mohammad Afzal Shadab\n- See archive/Reservoir-Simulator/readme.md\n\nReady for:\n- GitHub push\n- Google Cloud VM deployment\n- Continued development\n\n🤖 Generated with Claude Code (https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")",
+      "Bash(git commit:*)",
+      "Bash(git restore:*)",
+      "Bash(git fetch:*)",
+      "Bash(\"$LOCALAPPDATA/Programs/Python/Python314/python.exe\" test_single_run.py)",
+      "Bash(git push:*)",
+      "Bash(\"$LOCALAPPDATA/Programs/Python/Python314/python.exe\" quick_test.py)",
+      "Bash(\"$LOCALAPPDATA/Programs/Python/Python314/python.exe\" test_generate_input.py)",
+      "Bash(\"$LOCALAPPDATA/Programs/Python/Python314/python.exe\" test_import.py)"
     ],
     "deny": [],
     "ask": []

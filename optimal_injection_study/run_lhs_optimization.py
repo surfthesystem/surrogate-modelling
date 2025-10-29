@@ -276,7 +276,9 @@ def create_input_file(sample_id, inj_rates, prod_bhp, output_dir):
 
         # Copy rest of input file (grid setup, BC, IC)
         # Lines 181-261 contain the grid discretization, BC, and IC setup
-        for i in range(181, 262):
+        # Note: lines are 1-indexed in file, 0-indexed in array
+        # So to get lines 181-261, we need indices 180-260 (inclusive)
+        for i in range(180, 261):
             line = lines[i]
             # Preserve indentation by checking original indentation
             if line.strip():  # Non-empty line
