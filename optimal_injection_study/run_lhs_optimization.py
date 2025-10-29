@@ -275,8 +275,19 @@ def create_input_file(sample_id, inj_rates, prod_bhp, output_dir):
         f.write(f'    well.direction = [["v"]]*{N_WELLS_TOTAL}\n\n')
 
         # Copy rest of input file (grid setup, BC, IC)
+        # Lines 181-261 contain the grid discretization, BC, and IC setup
         for i in range(181, 262):
-            f.write('    ' + lines[i].strip() + '\n')
+            line = lines[i]
+            # Preserve indentation by checking original indentation
+            if line.strip():  # Non-empty line
+                # Count original indentation
+                orig_indent = len(line) - len(line.lstrip())
+                # We're inside inputfile function (4 spaces base)
+                # Original function also has 4 spaces base
+                # So we keep the same relative indentation
+                f.write(line)
+            else:
+                f.write('\n')
 
         # End of function
         f.write('\n# Initialize objects\n')
