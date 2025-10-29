@@ -224,7 +224,7 @@ def create_input_file(sample_id, inj_rates, prod_bhp, output_dir):
 
         # Write reservoir parameters (with all 58 wells)
         f.write('\n    # Reading Phase 1 generated files\n')
-        f.write('    base_path = "../data/impes_input/"\n')
+        f.write('    base_path = "../../data/impes_input/"\n')
         f.write('    depth    =-np.loadtxt(base_path + "depth.txt")\n')
         f.write('    porosity = np.loadtxt(base_path + "porosity.txt")\n')
         f.write('    permx    = np.loadtxt(base_path + "permeability.txt")\n\n')
