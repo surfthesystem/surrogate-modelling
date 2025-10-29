@@ -8,10 +8,9 @@ Modified for: Phase 1 waterflooding simulation
 
 #import inbuilt libraries
 import numpy as np
-from scipy.sparse import lil_matrix, csr_matrix, identity
+from scipy.sparse import lil_matrix, csr_matrix, identity, eye
 from scipy.sparse.linalg import inv
 from scipy.sparse.linalg import spsolve
-from scipy.sparse.construct import eye
 import matplotlib.pyplot as plt
 import time as timer
 from math import floor, ceil
