@@ -181,8 +181,8 @@ def create_input_file(sample_id, inj_rates, prod_bhp, output_dir):
         Path to created input file
     """
 
-    # Read template
-    template_file = '../simulator/input_file_phase1.py'
+    # Read template (renamed to avoid import conflicts when running simulations)
+    template_file = '../simulator/input_file_phase1_TEMPLATE.py'
     with open(template_file, 'r', encoding='utf-8') as f:
         lines = f.readlines()
 

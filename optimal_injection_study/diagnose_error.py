@@ -29,9 +29,10 @@ print(f"Input file exists: {os.path.exists(os.path.join(run_dir, 'input_file_pha
 os.chdir(run_dir)
 print(f"Changed working directory to: {os.getcwd()}")
 
-# Add to path
-sys.path.insert(0, run_dir)
-sys.path.insert(0, simulator_dir)
+# Add to path - run_dir MUST come before simulator_dir!
+# Otherwise Python will import the template instead of the generated file
+sys.path.insert(0, simulator_dir)  # Insert simulator first
+sys.path.insert(0, run_dir)  # Then insert run_dir at position 0 (so it's checked first)
 
 print(f"sys.path[0]: {sys.path[0]}")
 print(f"sys.path[1]: {sys.path[1]}")
