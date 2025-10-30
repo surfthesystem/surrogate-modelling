@@ -21,12 +21,13 @@ class SimpleReservoirDataset(Dataset):
     - Edge features: [distance, avg_perm]
     """
 
-    def __init__(self, scenario_paths, graph_data, normalize=True):
+    def __init__(self, scenario_paths, graph_data, normalize=True, normalization_stats=None):
         """
         Args:
             scenario_paths: List of paths to NPZ files
             graph_data: Loaded graph data from preprocessed/graph_data.npz
             normalize: Whether to normalize features
+            normalization_stats: Dict with precomputed stats (for val/test sets)
         """
         self.scenario_paths = scenario_paths
         self.normalize = normalize
@@ -46,8 +47,78 @@ class SimpleReservoirDataset(Dataset):
         print(f"  Producers: {self.num_producers}, Injectors: {self.num_injectors}")
         print(f"  P2P edges: {self.edge_index_p2p.shape[1]}, I2P edges: {self.edge_index_i2p.shape[1]}")
 
+        # Compute or use provided normalization stats
+        if normalize:
+            if normalization_stats is None:
+                print("  Computing normalization statistics from this dataset...")
+                self.normalization_stats = self._compute_normalization_stats()
+            else:
+                print("  Using provided normalization statistics")
+                self.normalization_stats = normalization_stats
+        else:
+            self.normalization_stats = None
+
     def __len__(self):
         return len(self.scenario_paths)
+
+    def _compute_normalization_stats(self):
+        """
+        Compute mean and std for all features across the entire dataset.
+        This should only be called on the training set.
+        """
+        oil_rates_all = []
+        water_rates_all = []
+        pwf_all = []
+        perm_all = []
+        poro_all = []
+
+        # Sample from scenarios to compute stats (use all if small dataset)
+        sample_size = min(len(self.scenario_paths), 50)
+        for path in self.scenario_paths[:sample_size]:
+            data = np.load(path)
+
+            # Collect rates
+            oil_rates = data['well_oil_rate_stb'].T[:, :self.num_producers]
+            water_rates = data['well_water_rate_stb'].T[:, :self.num_producers]
+            oil_rates_all.append(oil_rates.flatten())
+            water_rates_all.append(water_rates.flatten())
+
+            # Collect pwf
+            if 'producer_pwf' in data:
+                pwf = data['producer_pwf'][:self.num_producers, 0]
+                pwf_all.append(pwf)
+
+        # Concatenate all
+        oil_rates_all = np.concatenate(oil_rates_all)
+        water_rates_all = np.concatenate(water_rates_all)
+        pwf_all = np.concatenate(pwf_all) if pwf_all else np.array([4000.0])
+
+        # Static properties
+        perm_all = self.producer_static[:, 0]
+        poro_all = self.producer_static[:, 1]
+
+        # Compute stats
+        stats = {
+            'oil_rate_mean': float(np.mean(oil_rates_all)),
+            'oil_rate_std': float(np.std(oil_rates_all) + 1e-8),
+            'water_rate_mean': float(np.mean(water_rates_all)),
+            'water_rate_std': float(np.std(water_rates_all) + 1e-8),
+            'pwf_mean': float(np.mean(pwf_all)),
+            'pwf_std': float(np.std(pwf_all) + 1e-8),
+            'perm_mean': float(np.mean(perm_all)),
+            'perm_std': float(np.std(perm_all) + 1e-8),
+            'poro_mean': float(np.mean(poro_all)),
+            'poro_std': float(np.std(poro_all) + 1e-8),
+        }
+
+        print(f"  Normalization stats computed:")
+        print(f"    Oil rate: {stats['oil_rate_mean']:.1f} ± {stats['oil_rate_std']:.1f} STB/day")
+        print(f"    Water rate: {stats['water_rate_mean']:.1f} ± {stats['water_rate_std']:.1f} STB/day")
+        print(f"    PWF: {stats['pwf_mean']:.1f} ± {stats['pwf_std']:.1f} psi")
+        print(f"    Perm: {stats['perm_mean']:.1f} ± {stats['perm_std']:.1f} mD")
+        print(f"    Poro: {stats['poro_mean']:.3f} ± {stats['poro_std']:.3f}")
+
+        return stats
 
     def __getitem__(self, idx):
         """Load and prepare one scenario."""
@@ -88,6 +159,15 @@ class SimpleReservoirDataset(Dataset):
             producer_features[t, :, 3] = self.producer_static[:, 0]  # perm
             producer_features[t, :, 4] = self.producer_static[:, 1]  # poro
 
+        # Apply normalization if enabled
+        if self.normalize and self.normalization_stats is not None:
+            stats = self.normalization_stats
+            producer_features[:, :, 0] = (producer_features[:, :, 0] - stats['oil_rate_mean']) / stats['oil_rate_std']
+            producer_features[:, :, 1] = (producer_features[:, :, 1] - stats['water_rate_mean']) / stats['water_rate_std']
+            producer_features[:, :, 2] = (producer_features[:, :, 2] - stats['pwf_mean']) / stats['pwf_std']
+            producer_features[:, :, 3] = (producer_features[:, :, 3] - stats['perm_mean']) / stats['perm_std']
+            producer_features[:, :, 4] = (producer_features[:, :, 4] - stats['poro_mean']) / stats['poro_std']
+
         # === Build injector features ===
         # Features: [injection_rate, perm, poro] expanded to 8
         injector_features = np.zeros((T, self.num_injectors, 8), dtype=np.float32)
@@ -95,6 +175,13 @@ class SimpleReservoirDataset(Dataset):
         for t in range(T):
             injector_features[t, :, 1] = self.injector_static[:, 0]  # perm
             injector_features[t, :, 2] = self.injector_static[:, 1]  # poro
+
+        # Apply normalization if enabled
+        if self.normalize and self.normalization_stats is not None:
+            stats = self.normalization_stats
+            injector_features[:, :, 0] = (injector_features[:, :, 0] - stats['water_rate_mean']) / stats['water_rate_std']
+            injector_features[:, :, 1] = (injector_features[:, :, 1] - stats['perm_mean']) / stats['perm_std']
+            injector_features[:, :, 2] = (injector_features[:, :, 2] - stats['poro_mean']) / stats['poro_std']
 
         # === Build edge features ===
         # P2P edge features: [distance, avg_perm, ...] expanded to 10
@@ -106,7 +193,12 @@ class SimpleReservoirDataset(Dataset):
             for e in range(num_p2p_edges):
                 src, dst = self.edge_index_p2p[:, e]
                 avg_perm = (self.producer_static[src, 0] + self.producer_static[dst, 0]) / 2
-                edge_features_p2p[t, e, 1] = avg_perm / 1000  # Normalize
+                if self.normalize and self.normalization_stats is not None:
+                    # Normalize avg perm
+                    avg_perm = (avg_perm - self.normalization_stats['perm_mean']) / self.normalization_stats['perm_std']
+                else:
+                    avg_perm = avg_perm / 1000  # Simple scaling
+                edge_features_p2p[t, e, 1] = avg_perm
 
         # I2P edge features: [distance, avg_perm, ...] expanded to 10
         num_i2p_edges = self.edge_index_i2p.shape[1]
@@ -117,11 +209,22 @@ class SimpleReservoirDataset(Dataset):
             for e in range(num_i2p_edges):
                 inj_idx, prod_idx = self.edge_index_i2p[:, e]
                 avg_perm = (self.injector_static[inj_idx, 0] + self.producer_static[prod_idx, 0]) / 2
-                edge_features_i2p[t, e, 1] = avg_perm / 1000  # Normalize
+                if self.normalize and self.normalization_stats is not None:
+                    # Normalize avg perm
+                    avg_perm = (avg_perm - self.normalization_stats['perm_mean']) / self.normalization_stats['perm_std']
+                else:
+                    avg_perm = avg_perm / 1000  # Simple scaling
+                edge_features_i2p[t, e, 1] = avg_perm
 
         # === Targets ===
-        target_oil = producer_oil  # (T, num_producers)
-        target_water = producer_water  # (T, num_producers)
+        target_oil = producer_oil.copy()  # (T, num_producers)
+        target_water = producer_water.copy()  # (T, num_producers)
+
+        # Normalize targets if enabled
+        if self.normalize and self.normalization_stats is not None:
+            stats = self.normalization_stats
+            target_oil = (target_oil - stats['oil_rate_mean']) / stats['oil_rate_std']
+            target_water = (target_water - stats['water_rate_mean']) / stats['water_rate_std']
 
         # Convert to tensors
         return {

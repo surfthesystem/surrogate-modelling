@@ -61,9 +61,20 @@ def create_dataloaders(preprocessed_dir, data_dir, batch_size=8, train_split=0.7
     print(f"Split: {len(train_scenarios)} train, {len(val_scenarios)} val, {len(test_scenarios)} test")
 
     # Create datasets
-    train_dataset = SimpleReservoirDataset(train_scenarios, graph_data)
-    val_dataset = SimpleReservoirDataset(val_scenarios, graph_data)
-    test_dataset = SimpleReservoirDataset(test_scenarios, graph_data)
+    # Training dataset computes normalization stats
+    train_dataset = SimpleReservoirDataset(train_scenarios, graph_data, normalize=True)
+
+    # Val and test datasets use the same normalization stats from training
+    val_dataset = SimpleReservoirDataset(
+        val_scenarios, graph_data,
+        normalize=True,
+        normalization_stats=train_dataset.normalization_stats
+    )
+    test_dataset = SimpleReservoirDataset(
+        test_scenarios, graph_data,
+        normalize=True,
+        normalization_stats=train_dataset.normalization_stats
+    )
 
     # Create dataloaders with custom collate
     train_loader = DataLoader(
