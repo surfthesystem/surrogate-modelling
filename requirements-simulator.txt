@@ -1,0 +1,12 @@
+numpy
+scipy
+matplotlib
+pandas
+pyyaml
+seaborn
+plotly
+kaleido
+scikit-learn
+tqdm
+tensorboard
+pillow

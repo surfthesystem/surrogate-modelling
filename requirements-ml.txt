@@ -1,0 +1,40 @@
+# Enhanced GNN-LSTM Surrogate Model Dependencies
+
+# Core ML frameworks
+torch>=2.0.0
+torch-geometric>=2.3.0
+torch-scatter>=2.1.0
+torch-sparse>=0.6.0
+
+# Numerical computing
+numpy>=1.24.0
+scipy>=1.10.0
+scikit-learn>=1.2.0
+
+# Visualization
+matplotlib>=3.7.0
+seaborn>=0.12.0
+plotly>=5.14.0
+
+# Data handling
+pandas>=2.0.0
+h5py>=3.8.0
+
+# Configuration
+pyyaml>=6.0
+omegaconf>=2.3.0
+
+# Progress bars and logging
+tqdm>=4.65.0
+wandb>=0.15.0
+
+# Jupyter notebooks
+jupyterlab>=4.0.0
+ipywidgets>=8.0.0
+
+# Spatial/geometric
+shapely>=2.0.0  # For Voronoi diagrams
+networkx>=3.0   # For graph analysis
+
+# Utilities
+joblib>=1.2.0

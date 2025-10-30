@@ -1,0 +1,133 @@
+# Configuration for GNN-LSTM Surrogate Model Training
+
+# Data settings
+data:
+  scenarios_dir: "results/training_data"
+  num_scenarios: 100
+  train_split: 0.7
+  val_split: 0.15
+  test_split: 0.15
+  grid_spacing_m: 50.0
+  domain_size_m: [5000.0, 5000.0]
+
+# Well configuration
+wells:
+  num_producers: 10
+  num_injectors: 5
+  producer_node_dim: 10  # BHP, k, φ, depth, x, y, cum_oil, cum_water, prev_oil, prev_water
+  injector_node_dim: 8   # rate, k, φ, depth, x, y, cum_inj, prev_rate
+
+# Graph construction
+graph:
+  p2p_mode: 'voronoi'  # 'voronoi', 'knearest', or 'distance'
+  i2p_mode: 'full'     # 'full' or 'knearest'
+  k_p2p: 5             # Number of neighbors for knearest mode
+  k_i2p: 5
+  max_distance_p2p: null  # Maximum connection distance (null = no limit)
+  max_distance_i2p: null
+
+# Edge features (10-dimensional)
+edge_features:
+  use_distance: true
+  use_permeability: true
+  use_pressure_gradient: true
+  use_saturation_gradient: true
+  use_time_lag_correlation: true
+  dimension: 10
+
+# Model architecture
+model:
+  # GNN parameters
+  gnn:
+    hidden_dim: 128
+    num_layers: 3
+    dropout: 0.2
+
+  # LSTM parameters
+  lstm:
+    hidden_dim: 256
+    num_layers: 2
+    dropout: 0.2
+    bidirectional: false
+
+  # Decoder parameters
+  decoder:
+    hidden_dim: 64
+    dropout: 0.1
+
+# Training parameters
+training:
+  # Optimization
+  batch_size: 8
+  num_epochs: 150
+  learning_rate: 1.0e-4
+  weight_decay: 1.0e-5
+  gradient_clip: 1.0
+
+  # Learning rate scheduler
+  lr_scheduler:
+    type: 'StepLR'  # 'StepLR', 'ReduceLROnPlateau', or 'CosineAnnealingLR'
+    step_size: 50
+    gamma: 0.8
+    patience: 10  # For ReduceLROnPlateau
+    min_lr: 1.0e-6
+
+  # Early stopping
+  early_stopping:
+    patience: 15
+    min_delta: 0.001
+    mode: 'min'
+
+  # Checkpointing
+  save_every: 10  # Save checkpoint every N epochs
+  save_best: true  # Save best model based on validation loss
+
+# Loss function
+loss:
+  type: 'l1'  # 'l1' or 'mse'
+  alpha: 1.0   # Weight for water rate loss
+  beta: 80.0   # Weight for oil rate loss (from SPE-215842 paper)
+
+  # Additional loss components
+  use_cumulative: true
+  cumulative_weight: 0.1
+
+  use_physics: true
+  physics_weight: 0.01
+
+  use_relative: false
+  relative_weight: 0.5
+
+# Evaluation metrics
+metrics:
+  compute_mape: true
+  compute_r2: true
+  compute_cumulative_error: true
+  per_well_breakdown: true
+
+# Hardware
+hardware:
+  device: 'auto'  # 'auto', 'cuda', or 'cpu'
+  num_workers: 4  # DataLoader workers
+  pin_memory: true
+
+# Logging
+logging:
+  log_interval: 10  # Print stats every N batches
+  use_wandb: false  # Use Weights & Biases for logging
+  wandb_project: "reservoir-surrogate"
+  wandb_entity: null
+
+# Experiment
+experiment:
+  name: "gnn_lstm_baseline"
+  seed: 42
+  notes: "Enhanced GNN-LSTM with 10-dim edge features"
+  tags: ["gnn", "lstm", "reservoir", "surrogate"]
+
+# Preprocessing
+preprocessing:
+  precompute_static_edges: true
+  precompute_time_lag_corr: true
+  normalize_features: true
+  save_preprocessed: true

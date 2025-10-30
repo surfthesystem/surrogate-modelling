@@ -46,6 +46,9 @@ wells:
     count: 40
     bhp_min: 1500.0  # psi
     bhp_max: 2500.0  # psi
+    bhp_default: 1000.0  # psi (default producer BHP target)
+    choke_default: 1.0    # 0-1 scaling if choke control is used
+    control: "bhp"        # "bhp" or "choke"
     min_spacing: 500.0  # meters
 
   injectors:
@@ -54,6 +57,7 @@ wells:
     rate_max: 1000.0  # STB/day
     total_injection_min: 8000.0  # STB/day
     total_injection_max: 12000.0  # STB/day
+    distribution: "proportional"  # allocation when enforcing totals
     min_spacing: 500.0  # meters
 
 # Training Data Generation

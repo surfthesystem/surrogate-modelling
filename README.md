@@ -1,73 +1,42 @@
-# GNN-LSTM Reservoir Surrogate Model
+# Reservoir Simulation + Surrogate Modeling
 
-A physics-based reservoir simulation project for training Graph Neural Network (GNN) and Long Short-Term Memory (LSTM) surrogate models for fast reservoir forecasting.
+This repo runs a 2‑phase IMPES reservoir simulator and prepares data to train a spatiotemporal GNN surrogate. It now supports monthly control updates (every 30 days) for producer BHP/choke and injector rates with field caps.
 
-## Project Overview
+## What’s included
+- Reservoir model generator: `src/reservoir_model.py` + `config.yaml`
+- Data conversion for simulator: `convert_phase1_data.py` → `data/impes_input/`
+- IMPES simulator with monthly reallocation, per‑well BHP/choke and injector caps: `simulator/`
+- Scenario runner to execute monthly schedules and collect KPIs: `utils/scenario_runner.py`
 
-This project generates high-fidelity reservoir simulation data using a validated IMPES (Implicit Pressure, Explicit Saturation) multiphase flow simulator. The data will be used to train machine learning surrogate models that can predict reservoir behavior orders of magnitude faster than traditional simulators.
-
-### Project Status
-- Phase 1 Complete: Heterogeneous reservoir model generation
-- IMPES Integration Complete: Validated multiphase simulator working
-- Phase 2 In Progress: Training data generation (200-300 scenarios)
-- Phase 3 Planned: GNN-LSTM surrogate model training
-
-## Quick Start
-
-### Prerequisites
-```bash
-pip install numpy scipy matplotlib pandas pyyaml
-```
-
-### Phase 1: Generate Reservoir Model
+## Quick start
 ```bash
 python src/reservoir_model.py
-```
-
-### Convert Data for IMPES
-```bash
 python convert_phase1_data.py
+
+cd simulator
+python IMPES_phase1.py --tfinal 365 --dt 1 --realloc_days 30
 ```
 
-### Run Simulation
+## Controls
+- Producers: `config.yaml → wells.producers`
+  - control: "bhp" (per‑well BHP) or "choke" (0–1 scaling of BHP term)
+  - defaults: `bhp_default`, `choke_default`
+  - optional schedules (12×N_prod):
+    - `data/impes_input/schedule_producer_bhp.csv`
+    - `data/impes_input/schedule_producer_choke.csv`
+- Injectors: `config.yaml → wells.injectors`
+  - per‑well `rate_max`, field `total_injection_min/max`, `distribution: proportional`
+  - optional schedule (12×N_inj): `data/impes_input/schedule_injector_rates.csv`
+
+## Scenario runner
+Run multiple 12‑month scenarios and collect KPIs to `results/scenarios/summary.csv`:
 ```bash
-cd "Reservoir-Simulator/proj2/Problem 2"
-python IMPES_phase1.py
+python utils/scenario_runner.py --scenario scenarios/ --tfinal 365 --dt 1 --realloc_days 30
 ```
+Scenario JSON fields (broadcast or full matrices): `producer_bhp`, `producer_choke`, `injector_rates`.
 
-## CRITICAL: Sw Initialization Bug Fix
+## Notes
+- Initialize water saturation slightly above residual: handled in `input_file_phase1.py`.
+- Results and plots are written to `results/impes_sim/` for each run.
 
-**DO NOT** initialize water saturation exactly at residual (Sw = Swr). This causes mathematical singularity:
-
-```python
-# WRONG - Causes NaN!
-IC.Sw = petro.Swr * np.ones((N,1))  # Sw = 0.20 exactly
-
-# CORRECT - Avoids singularity
-IC.Sw = (petro.Swr + 0.01) * np.ones((N,1))  # Sw = 0.21
-```
-
-**Why?** When Sw = Swr, capillary pressure calculation becomes:
-- S = (Sw - Swr) / (1 - Swr - Sor) = 0.0
-- Pc = Pe * S^(-1/λ) = infinity
-- This propagates NaN throughout simulation
-
-See CRITICAL_FIX.md for detailed analysis.
-
-## Reservoir Model Specs
-
-- Grid: 100x100 cells, 5000m x 5000m domain
-- Permeability: 10-500 mD, spatially correlated
-- Porosity: 0.15-0.16, correlated with permeability
-- Wells: 58 total (40 producers, 18 injectors)
-- Fluids: Oil-water two-phase flow
-- Simulator: Validated IMPES (tested vs CMG)
-
-## Results (10-day test)
-
-- Runtime: 4.3 minutes (10,000 cells)
-- Pressure: 4500 to 4389 psi decline
-- Numerically stable: No NaN values
-- Physics correct: Realistic pressure evolution
-
-Last Updated: 2025-10-28
+Last Updated: 2025-10-30

@@ -31,7 +31,20 @@
       "Bash(git push:*)",
       "Bash(\"$LOCALAPPDATA/Programs/Python/Python314/python.exe\" quick_test.py)",
       "Bash(\"$LOCALAPPDATA/Programs/Python/Python314/python.exe\" test_generate_input.py)",
-      "Bash(\"$LOCALAPPDATA/Programs/Python/Python314/python.exe\" test_import.py)"
+      "Bash(\"$LOCALAPPDATA/Programs/Python/Python314/python.exe\" test_import.py)",
+      "Bash(python:*)",
+      "Bash(cat:*)",
+      "Bash(pkill:*)",
+      "Bash(rm:*)",
+      "Bash(python3:*)",
+      "Bash(pip3 install:*)",
+      "Bash(ml_venv/bin/pip install:*)",
+      "Bash(ml_venv/bin/python:*)",
+      "Bash(.venv/bin/pip:*)",
+      "Bash(test:*)",
+      "Bash(chmod:*)",
+      "Bash(awk:*)",
+      "Bash(git reset:*)"
     ],
     "deny": [],
     "ask": []
