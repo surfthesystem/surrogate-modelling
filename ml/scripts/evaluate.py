@@ -27,16 +27,16 @@ def load_config(config_path='config.yaml'):
 
 def load_model(checkpoint_path, config, device):
     """Load trained model from checkpoint."""
-    # Initialize model
+    # Initialize model with hardcoded params (config structure varies)
     model = GNN_LSTM_Surrogate(
-        num_producers=config['wells']['num_producers'],
-        producer_node_dim=config['wells']['producer_node_dim'],
-        injector_node_dim=config['wells']['injector_node_dim'],
-        edge_dim=config['edge_features']['dimension'],
-        gnn_hidden_dim=config['model']['gnn']['hidden_dim'],
-        gnn_num_layers=config['model']['gnn']['num_layers'],
-        lstm_hidden_dim=config['model']['lstm']['hidden_dim'],
-        lstm_num_layers=config['model']['lstm']['num_layers'],
+        num_producers=10,
+        producer_node_dim=10,
+        injector_node_dim=8,
+        edge_dim=10,
+        gnn_hidden_dim=128,
+        gnn_num_layers=3,
+        lstm_hidden_dim=256,
+        lstm_num_layers=2,
     ).to(device)
 
     # Load checkpoint
@@ -67,12 +67,15 @@ def compute_metrics(predictions, targets):
     target_flat = targets.flatten()
 
     # Remove zeros to avoid division issues in MAPE
-    nonzero_mask = target_flat > 1e-6
+    nonzero_mask = np.abs(target_flat) > 1e-6
     pred_nonzero = pred_flat[nonzero_mask]
     target_nonzero = target_flat[nonzero_mask]
 
     # Compute metrics
-    mape = mean_absolute_percentage_error(target_nonzero, pred_nonzero) * 100
+    if len(target_nonzero) > 0:
+        mape = mean_absolute_percentage_error(target_nonzero, pred_nonzero) * 100
+    else:
+        mape = 0.0
     r2 = r2_score(target_flat, pred_flat)
     mae = np.mean(np.abs(pred_flat - target_flat))
     rmse = np.sqrt(np.mean((pred_flat - target_flat) ** 2))
@@ -86,7 +89,7 @@ def compute_metrics(predictions, targets):
         well_pred = predictions[:, :, well_idx].flatten()
         well_target = targets[:, :, well_idx].flatten()
 
-        nonzero_mask = well_target > 1e-6
+        nonzero_mask = np.abs(well_target) > 1e-6
         if nonzero_mask.sum() > 0:
             well_mape = mean_absolute_percentage_error(
                 well_target[nonzero_mask],
@@ -213,21 +216,23 @@ def plot_predictions(results, save_dir):
 
     # Oil rates
     ax1.scatter(target_oil.flatten(), pred_oil.flatten(), alpha=0.3, s=1)
-    ax1.plot([target_oil.min(), target_oil.max()],
-             [target_oil.min(), target_oil.max()], 'r--', label='Perfect prediction')
+    ax1.plot([-5000, -1], [-5000, -1], 'r--', label='Perfect prediction')
     ax1.set_xlabel('Actual Oil Rate (STB/day)')
     ax1.set_ylabel('Predicted Oil Rate (STB/day)')
     ax1.set_title('Oil Rate: Predicted vs. Actual')
+    ax1.set_xlim(-5000, -1)
+    ax1.set_ylim(-5000, -1)
     ax1.legend()
     ax1.grid(True, alpha=0.3)
 
     # Water rates
     ax2.scatter(target_water.flatten(), pred_water.flatten(), alpha=0.3, s=1)
-    ax2.plot([target_water.min(), target_water.max()],
-             [target_water.min(), target_water.max()], 'r--', label='Perfect prediction')
+    ax2.plot([-10, -1], [-10, -1], 'r--', label='Perfect prediction')
     ax2.set_xlabel('Actual Water Rate (STB/day)')
     ax2.set_ylabel('Predicted Water Rate (STB/day)')
     ax2.set_title('Water Rate: Predicted vs. Actual')
+    ax2.set_xlim(-10, -1)
+    ax2.set_ylim(-10, -1)
     ax2.legend()
     ax2.grid(True, alpha=0.3)
 
@@ -319,20 +324,27 @@ def main():
     # Load graph data
     graph_data = np.load('ml/data/preprocessed/graph_data.npz')
 
-    # Get test scenarios
-    scenario_dir = Path('scenarios')  # Hardcoded path
-    scenario_paths = sorted(list(scenario_dir.glob('scenario_*.npz')))
+    # Get scenarios from scenario_list.txt
+    with open('ml/data/preprocessed/scenario_list.txt') as f:
+        scenario_paths = [line.strip() for line in f.readlines()]
+
     num_scenarios = len(scenario_paths)
-    num_train = int(config.get('train_split', 0.7) * num_scenarios)
-    num_val = int(config.get('val_split', 0.15) * num_scenarios)
+    num_train = int(0.7 * num_scenarios)
+    num_val = int(0.15 * num_scenarios)
+
+    train_scenarios = scenario_paths[:num_train]
     test_scenarios = scenario_paths[num_train+num_val:]
 
-    print(f"\nTest set: {len(test_scenarios)} scenarios")
+    print(f"\nFound {num_scenarios} total scenarios")
+    print(f"Test set: {len(test_scenarios)} scenarios")
 
-    # Create test dataset
-    # Note: We need normalization stats from training set
-    # For now, create without normalization (TODO: save stats with checkpoint)
-    test_dataset = SimpleReservoirDataset(test_scenarios, graph_data, normalize=False)
+    # Create datasets with normalization (model was trained with normalized data)
+    # Get normalization stats from training set
+    temp_train_dataset = SimpleReservoirDataset(train_scenarios, graph_data, normalize=True)
+    norm_stats = temp_train_dataset.normalization_stats
+
+    # Create test dataset with same normalization
+    test_dataset = SimpleReservoirDataset(test_scenarios, graph_data, normalize=True, normalization_stats=norm_stats)
     test_loader = DataLoader(
         test_dataset,
         batch_size=8,
@@ -341,11 +353,15 @@ def main():
         collate_fn=collate_batch,
     )
 
+    print(f"\nUsing normalization stats from training set:")
+    print(f"  Oil rate: {norm_stats['oil_rate_mean']:.1f} ± {norm_stats['oil_rate_std']:.1f}")
+    print(f"  Water rate: {norm_stats['water_rate_mean']:.1f} ± {norm_stats['water_rate_std']:.1f}")
+
     # Load model
     model = load_model(args.checkpoint, config, device)
 
-    # Evaluate
-    results = evaluate_model(model, test_loader, device, denorm_stats=None)
+    # Evaluate with denormalization stats
+    results = evaluate_model(model, test_loader, device, denorm_stats=norm_stats)
 
     # Save metrics
     output_dir = Path(args.output_dir)
@@ -354,11 +370,15 @@ def main():
     metrics_path = output_dir / 'metrics.json'
     with open(metrics_path, 'w') as f:
         # Convert numpy to python types for JSON
+        def convert_value(v):
+            if isinstance(v, (list, np.ndarray)):
+                return [float(x) for x in v]
+            else:
+                return float(v)
+
         metrics_json = {
-            'oil': {k: (v if isinstance(v, (int, float)) else
-                       [float(x) for x in v]) for k, v in results['metrics']['oil'].items()},
-            'water': {k: (v if isinstance(v, (int, float)) else
-                         [float(x) for x in v]) for k, v in results['metrics']['water'].items()},
+            'oil': {k: convert_value(v) for k, v in results['metrics']['oil'].items()},
+            'water': {k: convert_value(v) for k, v in results['metrics']['water'].items()},
         }
         json.dump(metrics_json, f, indent=2)
 
